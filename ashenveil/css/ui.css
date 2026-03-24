@@ -1,0 +1,356 @@
+/* ═══════════════════════════════════════════════════
+   ui.css  —  HUD, panels, inventory, skills, screens
+════════════════════════════════════════════════════ */
+
+/* ── HUD TOP ─────────────────────────────────────── */
+#hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #0d0500, #1a0800);
+  border-bottom: 2px solid #2a1000;
+  padding: 6px 14px;
+  height: 50px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hud-left  { display: flex; gap: 16px; align-items: center; }
+.hud-center { display: flex; gap: 14px; align-items: center; }
+.hud-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* stat pill */
+.hud-stat {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: #7a5a20;
+  letter-spacing: 1px;
+}
+.hud-stat b { color: #c8922a; font-size: 13px; }
+
+/* bar groups */
+.bar-group { display: flex; align-items: center; gap: 6px; }
+.bar-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  color: #5a3a10;
+  letter-spacing: 1px;
+  min-width: 18px;
+}
+.bar-val {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  color: #5a3a10;
+  min-width: 52px;
+}
+.bar {
+  width: 120px;
+  height: 9px;
+  background: #1a0800;
+  border: 1px solid #3a1500;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #8b0000, #cc2200);
+  box-shadow: 0 0 6px #ff000066;
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+/* hud buttons */
+.hud-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  color: #8a5a20;
+  background: #1a0800;
+  border: 1px solid #3a1a00;
+  padding: 3px 8px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  user-select: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.hud-btn:hover { border-color: #c8922a; color: #c8922a; }
+
+/* ── BOTTOM HUD ──────────────────────────────────── */
+#bottomHud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #1a0800, #0d0500);
+  border-top: 2px solid #2a1000;
+  padding: 5px 14px;
+  height: 44px;
+  gap: 12px;
+}
+
+#equip { display: flex; gap: 16px; align-items: center; flex-shrink: 0; }
+.equip-slot {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: #7a5a20;
+}
+.equip-slot span { color: #b8821a; }
+
+#skillPts {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: #4488ff;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+#msgLog {
+  flex: 1;
+  overflow: hidden;
+  max-height: 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.msg { font-size: 11px; color: #6a4a2a; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg.combat { color: #cc4422; }
+.msg.loot   { color: #22aa44; }
+.msg.level  { color: #4488ff; }
+.msg.warn   { color: #ffaa00; }
+
+#controls {
+  font-size: 9px;
+  color: #2a1800;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── SCREENS (title / death) ─────────────────────── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #1a0800aa 0%, #000000dd 100%);
+  z-index: 300;
+}
+.screen.active { display: flex; }
+
+.title-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 48px;
+  background: linear-gradient(180deg, #0d050088, #00000099);
+  border: 2px solid #3a1a00;
+  max-width: 480px;
+  width: 90%;
+}
+
+h1#titleText {
+  font-family: 'Cinzel', serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: #c8922a;
+  text-shadow: 0 0 30px #ff6600, 0 0 60px #aa330066;
+  letter-spacing: 4px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.title-sub {
+  font-size: 15px;
+  color: #7a5a20;
+  font-style: italic;
+  letter-spacing: 2px;
+}
+
+.big-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  color: #c8922a;
+  background: linear-gradient(180deg, #2a1000, #150800);
+  border: 2px solid #7a4a18;
+  padding: 12px 44px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px #ff660066;
+  transition: all 0.25s;
+  width: 100%;
+}
+.big-btn:hover {
+  background: linear-gradient(180deg, #3a1800, #200c00);
+  border-color: #c8922a;
+  box-shadow: 0 0 20px #ff660033;
+}
+.big-btn.secondary {
+  font-size: 13px;
+  padding: 8px 24px;
+  color: #7a5a20;
+  border-color: #3a1a00;
+}
+.big-btn.secondary:hover { color: #c8922a; border-color: #7a5a20; }
+
+.key-hints {
+  font-size: 11px;
+  color: #3a2a10;
+  text-align: center;
+  line-height: 1.8;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.5px;
+}
+
+/* ── SIDE PANELS (inventory / skills) ────────────── */
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: -340px;
+  width: 320px;
+  height: 100vh;
+  background: linear-gradient(180deg, #0d0500f0, #1a0a00f0);
+  border-left: 2px solid #3a1a00;
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+.side-panel.open { right: 0; }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 2px solid #3a1a00;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: #c8922a;
+  text-shadow: 0 0 10px #ff660055;
+  flex-shrink: 0;
+}
+.close-btn {
+  background: none;
+  border: 1px solid #3a1a00;
+  color: #7a5a20;
+  font-size: 14px;
+  width: 28px; height: 28px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.close-btn:hover { border-color: #c8922a; color: #c8922a; }
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a1a00 #0d0500;
+}
+.panel-body::-webkit-scrollbar { width: 6px; }
+.panel-body::-webkit-scrollbar-track { background: #0d0500; }
+.panel-body::-webkit-scrollbar-thumb { background: #3a1a00; border-radius: 3px; }
+
+/* ── INVENTORY ITEMS ─────────────────────────────── */
+.inv-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  background: #1a0800;
+  border: 1px solid #2a1200;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.inv-item:hover { border-color: #7a4a18; background: #220e00; }
+.inv-item.equipped { border-color: #c8922a; background: #2a1400; }
+.inv-item .item-name { font-size: 13px; color: #b8821a; line-height: 1.4; }
+.inv-item .item-stat { font-size: 11px; color: #5a3a18; font-style: italic; }
+.inv-item .item-rarity { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; }
+.rarity-common   { color: #999; }
+.rarity-uncommon { color: #44cc44; }
+.rarity-rare     { color: #4488ff; }
+.rarity-epic     { color: #cc44ff; }
+
+/* ── SKILL NODES ─────────────────────────────────── */
+.skill-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  margin-bottom: 7px;
+  background: #1a0800;
+  border: 1px solid #2a1200;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.skill-node:hover:not(.locked) { border-color: #7a4a18; background: #220e00; }
+.skill-node.unlocked { border-color: #c8922a; background: #2a1500; }
+.skill-node.locked   { opacity: 0.45; cursor: not-allowed; }
+
+.skill-icon {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  background: #0d0500;
+  border: 1px solid #2a1200;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.skill-info { flex: 1; }
+.skill-info h3 { font-family: 'Cinzel', serif; font-size: 12px; color: #c8922a; margin-bottom: 2px; }
+.skill-info p  { font-size: 11px; color: #5a3a18; font-style: italic; margin-bottom: 3px; }
+.skill-cost    { font-size: 10px; color: #4488ff; font-family: 'Cinzel', serif; }
+
+/* ── BOSS HP BAR (world-space overlay rendered via CSS) */
+#bossBar {
+  position: absolute;
+  top: 8px; left: 50%; transform: translateX(-50%);
+  width: 300px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+#bossBar.show { display: flex; }
+#bossName {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: #ff4422;
+  text-shadow: 0 0 10px #ff000088;
+  letter-spacing: 2px;
+}
+#bossHpBar {
+  width: 100%;
+  height: 10px;
+  background: #2a0000;
+  border: 1px solid #8a0000;
+  border-radius: 2px;
+  overflow: hidden;
+}
+#bossHpFill {
+  height: 100%;
+  background: linear-gradient(90deg, #660000, #ff2200);
+  box-shadow: 0 0 8px #ff000099;
+  transition: width 0.3s;
+}
+
+/* ── CROSSHAIR / AIM OVERLAY ────────────────────── */
+#aimDot {
+  position: absolute;
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,180,80,0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}

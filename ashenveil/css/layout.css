@@ -1,0 +1,178 @@
+/* ═══════════════════════════════════════════════════
+   layout.css  —  Page shell, ad positioning, responsive
+════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: #05020a;
+  color: #c8922a;
+  font-family: 'IM Fell English', serif;
+  overflow-x: hidden;
+}
+
+/* ── TOP BRAND BAR ───────────────────────────────── */
+#topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 20px;
+  background: linear-gradient(180deg, #0d0500, #1a0800);
+  border-bottom: 2px solid #3a1a00;
+  height: 38px;
+}
+#brandName {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #c8922a;
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px #ff660088;
+}
+#topTagline {
+  font-size: 12px;
+  color: #5a3a10;
+  font-style: italic;
+}
+
+/* ── MAIN ROW: game + sidebar ────────────────────── */
+#pageShell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#mainRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 10px 0 10px;
+  width: 100%;
+  max-width: 1260px;
+}
+
+/* ── GAME COLUMN ─────────────────────────────────── */
+#gameColumn {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Canvas mount: Three.js injects its canvas here */
+#canvasMount {
+  width: 100%;
+  /* Height is set dynamically by engine.js to maintain 16:9 */
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+#canvasMount canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── RIGHT SIDEBAR AD ────────────────────────────── */
+#adSidebar {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+/* ── BOTTOM BANNER AD ────────────────────────────── */
+#adBanner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0 12px 0;
+  width: 100%;
+}
+
+/* ── AD SHARED STYLES ────────────────────────────── */
+.ad-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  color: #3a2208;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.ad-slot {
+  background: #0a0500;
+  border: 1px solid #2a1200;
+}
+
+.ad-300x600 {
+  width: 300px;
+  height: 600px;
+}
+
+.ad-728x90 {
+  width: 728px;
+  height: 90px;
+}
+
+/* Placeholder shown before real AdSense is wired up */
+.ad-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: repeating-linear-gradient(
+    45deg,
+    #0d0500,
+    #0d0500 10px,
+    #100600 10px,
+    #100600 20px
+  );
+  border: 1px dashed #2a1200;
+}
+.ad-placeholder span {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  color: #3a1a00;
+}
+.ad-placeholder small {
+  font-size: 11px;
+  color: #2a1200;
+  text-align: center;
+  line-height: 1.6;
+}
+.ad-placeholder.wide {
+  flex-direction: row;
+  gap: 16px;
+}
+
+/* ── OVERLAY LAYER (full-screen panels) ──────────── */
+#overlayLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 200;
+}
+#overlayLayer > * {
+  pointer-events: all;
+}
+
+/* ── RESPONSIVE: collapse sidebar below 1000px ───── */
+@media (max-width: 1000px) {
+  #adSidebar { display: none; }
+  #adBanner .ad-728x90 { width: 100%; max-width: 728px; }
+  #mainRow { padding: 6px; gap: 0; }
+}
+@media (max-width: 760px) {
+  #adBanner { display: none; }
+  #topTagline { display: none; }
+}

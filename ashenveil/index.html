@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Depths of Ashenveil</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+
+  <!-- ═══════════════════════════════════════════════════
+       GOOGLE ADSENSE — replace ca-pub-XXXXXXXXXXXXXXXX
+       with your actual publisher ID before going live
+  ════════════════════════════════════════════════════ -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/ui.css" />
+</head>
+<body>
+
+  <!-- ── PAGE SHELL ─────────────────────────────────── -->
+  <div id="pageShell">
+
+    <!-- TOP BAR / BRAND -->
+    <header id="topBar">
+      <span id="brandName">⚔ DEPTHS OF ASHENVEIL</span>
+      <span id="topTagline">A Dungeon of No Return</span>
+    </header>
+
+    <!-- MAIN ROW: game + right ad -->
+    <div id="mainRow">
+
+      <!-- GAME COLUMN -->
+      <div id="gameColumn">
+
+        <!-- HUD TOP -->
+        <div id="hud">
+          <div class="hud-left">
+            <div class="bar-group">
+              <span class="bar-label">HP</span>
+              <div class="bar" id="hpBar"><div class="bar-fill" id="hpFill"></div></div>
+              <span class="bar-val" id="hpText">100/100</span>
+            </div>
+            <div class="bar-group">
+              <span class="bar-label">XP</span>
+              <div class="bar" id="xpBar"><div class="bar-fill" id="xpFill" style="background:linear-gradient(90deg,#004488,#0088ff)"></div></div>
+              <span class="bar-val" id="xpText">0/100</span>
+            </div>
+          </div>
+          <div class="hud-center">
+            <span class="hud-stat" id="hudLevel">LVL 1</span>
+            <span class="hud-stat" id="hudFloor">FLOOR 1</span>
+          </div>
+          <div class="hud-right">
+            <span class="hud-stat">ATK <b id="hudAtk">10</b></span>
+            <span class="hud-stat">DEF <b id="hudDef">2</b></span>
+            <span class="hud-stat">SPD <b id="hudSpd">3</b></span>
+            <span class="hud-btn" onclick="UI.togglePanel('inv')">⚔ INV [I]</span>
+            <span class="hud-btn" onclick="UI.togglePanel('skills')">✦ SKL [K]</span>
+          </div>
+        </div>
+
+        <!-- THREE.JS CANVAS MOUNT -->
+        <div id="canvasMount"></div>
+
+        <!-- BOTTOM HUD -->
+        <div id="bottomHud">
+          <div id="equip">
+            <span class="equip-slot">🗡 <span id="eqWeapon">Rusty Sword</span></span>
+            <span class="equip-slot">🛡 <span id="eqArmor">Tattered Cloth</span></span>
+            <span id="skillPts"></span>
+          </div>
+          <div id="msgLog"></div>
+          <div id="controls">WASD·Move &nbsp; Mouse·Aim &nbsp; LClick·Attack &nbsp; E·Interact &nbsp; I·Inv &nbsp; K·Skills</div>
+        </div>
+
+      </div><!-- /gameColumn -->
+
+      <!-- RIGHT AD SIDEBAR (300×600 half-page) -->
+      <aside id="adSidebar">
+        <div class="ad-label">Advertisement</div>
+        <div class="ad-slot ad-300x600">
+          <!-- ADSENSE SLOT ─ replace data-ad-slot value -->
+          <!--
+          <ins class="adsbygoogle"
+               style="display:inline-block;width:300px;height:600px"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="1234567890"></ins>
+          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+          -->
+          <div class="ad-placeholder">
+            <span>300 × 600</span>
+            <small>Google AdSense<br/>Half Page Unit</small>
+          </div>
+        </div>
+      </aside>
+
+    </div><!-- /mainRow -->
+
+    <!-- BOTTOM BANNER AD (728×90 leaderboard) -->
+    <div id="adBanner">
+      <div class="ad-label">Advertisement</div>
+      <div class="ad-slot ad-728x90">
+        <!--
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:728px;height:90px"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="0987654321"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        -->
+        <div class="ad-placeholder wide">
+          <span>728 × 90</span>
+          <small>Google AdSense Leaderboard</small>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pageShell -->
+
+  <!-- ── OVERLAY PANELS (inventory, skills, death, title) ── -->
+  <div id="overlayLayer">
+
+    <!-- TITLE SCREEN -->
+    <div id="titleScreen" class="screen active">
+      <div class="title-inner">
+        <h1 id="titleText">DEPTHS OF ASHENVEIL</h1>
+        <p class="title-sub">— Descend. Survive. Conquer. —</p>
+        <button class="big-btn" onclick="Game.start()">ENTER THE DUNGEON</button>
+        <div class="key-hints">
+          WASD · Move &nbsp;|&nbsp; Mouse · Aim &nbsp;|&nbsp; Left Click · Attack<br/>
+          I · Inventory &nbsp;|&nbsp; K · Skills &nbsp;|&nbsp; E · Interact / Descend
+        </div>
+      </div>
+    </div>
+
+    <!-- DEATH SCREEN -->
+    <div id="deathScreen" class="screen">
+      <div class="title-inner">
+        <h1 style="color:#cc2200;">YOU PERISHED</h1>
+        <p class="title-sub" id="deathMsg">The darkness claims another soul...</p>
+        <button class="big-btn" onclick="Game.start()">DESCEND AGAIN</button>
+        <button class="big-btn secondary" onclick="UI.showTitle()">TITLE SCREEN</button>
+      </div>
+    </div>
+
+    <!-- INVENTORY PANEL -->
+    <div id="invPanel" class="side-panel">
+      <div class="panel-header">
+        <span>⚔ INVENTORY</span>
+        <button class="close-btn" onclick="UI.closePanel()">✕</button>
+      </div>
+      <div id="invList" class="panel-body"></div>
+    </div>
+
+    <!-- SKILLS PANEL -->
+    <div id="skillsPanel" class="side-panel">
+      <div class="panel-header">
+        <span>✦ SKILL TREE</span>
+        <button class="close-btn" onclick="UI.closePanel()">✕</button>
+      </div>
+      <div id="skillList" class="panel-body"></div>
+    </div>
+
+  </div>
+
+  <!-- ── THREE.JS CDN ───────────────────────────────── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- ── GAME MODULES (order matters) ─────────────────
+       dungeon → loot → enemies → player → engine → ui → game
+  ─────────────────────────────────────────────────── -->
+  <script src="js/dungeon.js"></script>
+  <script src="js/loot.js"></script>
+  <script src="js/enemies.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+
+</body>
+</html>
