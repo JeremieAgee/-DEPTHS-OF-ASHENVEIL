@@ -66,8 +66,8 @@ html, body {
 /* Canvas mount: Three.js injects its canvas here */
 #canvasMount {
   width: 100%;
-  /* Height is set dynamically by engine.js to maintain 16:9 */
-  background: #000;
+  height: calc(100vh - 132px); /* subtract topBar(38) + hud(50) + bottomHud(44) */
+  background: #000000;
   position: relative;
   overflow: hidden;
 }

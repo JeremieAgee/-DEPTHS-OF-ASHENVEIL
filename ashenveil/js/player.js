@@ -53,7 +53,6 @@ const Player = (() => {
   function totalAtk(p) {
     const w = equippedWeapon(p);
     let base = p.atk + (w ? w.atk : 0);
-    // Active buffs
     const b = p.buffs.find(b => b.stat === 'atk');
     if (b) base += b.value;
     return base;
@@ -113,58 +112,81 @@ const Player = (() => {
   }
 
   /* ── Per-frame update ────────────────────────── */
-  function update(p, dungeon, keys, aimDir, dt) {
-    // Timers
-    if (p.atkTimer > 0) p.atkTimer  -= dt * 60;
-    if (p.iframes  > 0) p.iframes   -= dt * 60;
-    if (p.blinkCD  > 0) p.blinkCD   -= dt * 60;
+  function update(p, dungeon, keys, aimAngle, dt) {
+  // Timers
+  if (p.atkTimer > 0) p.atkTimer  -= dt * 60;
+  if (p.iframes  > 0) p.iframes   -= dt * 60;
+  if (p.blinkCD  > 0) p.blinkCD   -= dt * 60;
 
-    // Buff timers
-    p.buffs = p.buffs.filter(b => {
-      b.remaining -= dt * 60;
-      return b.remaining > 0;
-    });
+  // Buff timers
+  p.buffs = p.buffs.filter(b => {
+    b.remaining -= dt * 60;
+    return b.remaining > 0;
+  });
 
-    // Regen
-    if (p.hasRegen && p.hp < p.maxHp) {
-      p.regenAccum += dt;
-      if (p.regenAccum >= 2.5) {
-        p.regenAccum = 0;
-        p.hp = Math.min(p.maxHp, p.hp + 4);
-        UI.refresh(p);
-      }
+  // Regen
+  if (p.hasRegen && p.hp < p.maxHp) {
+    p.regenAccum += dt;
+    if (p.regenAccum >= 2.5) {
+      p.regenAccum = 0;
+      p.hp = Math.min(p.maxHp, p.hp + 4);
+      UI.refresh(p);
     }
-
-    // Movement
-    let dx = 0, dz = 0;
-    if (keys['w'] || keys['arrowup'])    dz -= 1;
-    if (keys['s'] || keys['arrowdown'])  dz += 1;
-    if (keys['a'] || keys['arrowleft'])  dx -= 1;
-    if (keys['d'] || keys['arrowright']) dx += 1;
-
-    if (dx !== 0 && dz !== 0) { dx *= 0.7071; dz *= 0.7071; }
-
-    const spd  = p.speed * dt;
-    const TILE = dungeon.TILE;
-    const r    = 0.35;
-
-    function tryMove(nx, nz) {
-      const tx = Math.floor(nx / TILE);
-      const tz = Math.floor(nz / TILE);
-      return (
-        tx >= 0 && tx < dungeon.COLS &&
-        tz >= 0 && tz < dungeon.ROWS &&
-        dungeon.grid[tz][tx] === 0
-      );
-    }
-
-    const nx = p.x + dx * spd;
-    const nz = p.z + dz * spd;
-    if (tryMove(nx - r, p.z - r) && tryMove(nx + r, p.z - r) &&
-        tryMove(nx - r, p.z + r) && tryMove(nx + r, p.z + r)) p.x = nx;
-    if (tryMove(p.x - r, nz - r) && tryMove(p.x + r, nz - r) &&
-        tryMove(p.x - r, nz + r) && tryMove(p.x + r, nz + r)) p.z = nz;
   }
+
+  // Ensure aimAngle is valid
+  if (typeof aimAngle !== 'number') aimAngle = 0;
+
+  // Movement input
+ const wPressed = keys['w'] || keys['arrowup'];
+const sPressed = keys['s'] || keys['arrowdown'];
+const dPressed = keys['d'] || keys['arrowright'];
+const aPressed = keys['a'] || keys['arrowleft'];
+
+// Only calculate if there's input
+if (wPressed || sPressed || dPressed || aPressed) {
+  // aimAngle = camera yaw (horizontal facing angle, in radians)
+  // Forward vector: cos/sin of aimAngle
+  // Right vector:   forward rotated +90° = (-sin, cos)
+  
+  const fwdX =  Math.cos(aimAngle);
+  const fwdZ =  Math.sin(aimAngle);
+  const rgtX = -Math.sin(aimAngle);  // right = fwd rotated +90°
+  const rgtZ =  Math.cos(aimAngle);
+
+  const forwardAmount = (wPressed ? 1 : 0) - (sPressed ? 1 : 0);
+  const rightAmount   = (dPressed ? 1 : 0) - (aPressed ? 1 : 0);
+
+  const worldDx = fwdX * forwardAmount + rgtX * rightAmount;
+  const worldDz = fwdZ * forwardAmount + rgtZ * rightAmount;
+
+  // Normalize if moving diagonally
+  const moveLength = Math.sqrt(worldDx * worldDx + worldDz * worldDz);
+  const normDx = moveLength > 0 ? worldDx / moveLength : 0;
+  const normDz = moveLength > 0 ? worldDz / moveLength : 0;
+
+  const spd  = p.speed * dt;
+  const TILE = dungeon.TILE;
+  const r    = 0.35;
+
+  function tryMove(nx, nz) {
+    const tx = Math.floor(nx / TILE);
+    const tz = Math.floor(nz / TILE);
+    return (
+      tx >= 0 && tx < dungeon.COLS &&
+      tz >= 0 && tz < dungeon.ROWS &&
+      dungeon.grid[tz][tx] === 0
+    );
+  }
+
+  const nx = p.x + normDx * spd;
+  const nz = p.z + normDz * spd;
+  if (tryMove(nx - r, p.z - r) && tryMove(nx + r, p.z - r) &&
+      tryMove(nx - r, p.z + r) && tryMove(nx + r, p.z + r)) p.x = nx;
+  if (tryMove(p.x - r, nz - r) && tryMove(p.x + r, nz - r) &&
+      tryMove(p.x - r, nz + r) && tryMove(p.x + r, nz + r)) p.z = nz;
+}
+}
 
   /* ── Attack ──────────────────────────────────── */
   function attack(p, enemies, aimAngle) {
@@ -174,7 +196,7 @@ const Player = (() => {
 
     p.atkTimer = cd;
     const atk  = totalAtk(p);
-    const range = atkRange(p) * 1.8;  // world units
+    const range = atkRange(p) * 1.8;
     const hits  = [];
 
     enemies.forEach(e => {
@@ -185,10 +207,17 @@ const Player = (() => {
       if (p.hasWhirl) {
         processHit(p, e, atk, hits);
       } else {
-        // Cone check  (±70°)
+        // Cone check: ±70° in front of player
         const eAngle = Math.atan2(e.z - p.z, e.x - p.x);
-        const diff   = Math.abs(((eAngle - aimAngle) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
-        if (diff < 1.22) processHit(p, e, atk, hits);
+        let angleDiff = eAngle - aimAngle;
+        
+        // Normalize to -PI to PI
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        
+        if (Math.abs(angleDiff) < 1.22) { // ±70°
+          processHit(p, e, atk, hits);
+        }
       }
     });
 
@@ -202,7 +231,6 @@ const Player = (() => {
     dmg = Math.max(1, dmg);
     e.hp -= dmg;
     e.hitFlash = 8;
-    // Lifesteal
     if (p.lifesteal > 0) p.hp = Math.min(p.maxHp, p.hp + dmg * p.lifesteal);
     hits.push({ enemy: e, dmg, isCrit, killed: e.hp <= 0 });
   }
@@ -220,7 +248,7 @@ const Player = (() => {
   /* ── Blink ───────────────────────────────────── */
   function blink(p, aimAngle, dungeon) {
     if (!p.hasBlink || p.blinkCD > 0) return false;
-    const dist = 6.0; // world units
+    const dist = 6.0;
     const nx   = p.x + Math.cos(aimAngle) * dist;
     const nz   = p.z + Math.sin(aimAngle) * dist;
     const TILE = dungeon.TILE;

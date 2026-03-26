@@ -151,31 +151,37 @@ const Enemies = (() => {
       enemy.state = 'chase';
 
       if (dist > enemy.atkR + 0.1) {
-        // Move toward player
-        const spd = enemy.spd * dt;
-        const inv = 1 / dist;
-        const nx  = enemy.x + dx * inv * spd;
-        const nz  = enemy.z + dz * inv * spd;
+  const spd = enemy.spd * dt;
+  const inv = 1 / dist;
+  const nx  = enemy.x + dx * inv * spd;
+  const nz  = enemy.z + dz * inv * spd;
 
-        // Collision with walls
-        const TILE = dungeon.TILE;
-        const tx   = Math.floor(nx / TILE);
-        const tz   = Math.floor(nz / TILE);
-        const r    = enemy.radius;
+  const TILE = dungeon.TILE;
+  const r    = enemy.radius; // available if you want to use it for swept checks
 
-        if (tx >= 0 && tx < dungeon.COLS && tz >= 0 && tz < dungeon.ROWS && dungeon.grid[tz][tx] === 0)
-          enemy.x = nx;
-        const tx2  = Math.floor(enemy.x / TILE);
-        const tz2  = Math.floor((enemy.z + (nz - enemy.z)) / TILE);
-        if (tx2 >= 0 && tx2 < dungeon.COLS && tz2 >= 0 && tz2 < dungeon.ROWS && dungeon.grid[tz2][tx2] === 0)
-          enemy.z = enemy.z + (nz - enemy.z);
+  // Check X axis independently
+  const txNew = Math.floor(nx      / TILE);
+  const tzCur = Math.floor(enemy.z / TILE);
+  if (txNew >= 0 && txNew < dungeon.COLS &&
+      tzCur >= 0 && tzCur < dungeon.ROWS &&
+      dungeon.grid[tzCur][txNew] === 0) {
+    enemy.x = nx;
+  }
 
-        // Update mesh position
-        if (enemy.mesh) {
-          enemy.mesh.position.x = enemy.x;
-          enemy.mesh.position.z = enemy.z;
-        }
-      }
+  // Check Z axis independently (using original enemy.x, not nx)
+  const txCur = Math.floor(enemy.x / TILE);
+  const tzNew = Math.floor(nz      / TILE);
+  if (txCur >= 0 && txCur < dungeon.COLS &&
+      tzNew >= 0 && tzNew < dungeon.ROWS &&
+      dungeon.grid[tzNew][txCur] === 0) {
+    enemy.z = nz;
+  }
+
+  if (enemy.mesh) {
+    enemy.mesh.position.x = enemy.x;
+    enemy.mesh.position.z = enemy.z;
+  }
+}
 
       // Attack
       if (dist <= enemy.atkR + 0.1 && enemy.atkTimer <= 0) {

@@ -19,6 +19,7 @@ const Game = (() => {
   let mouseX    = 0;
   let mouseY    = 0;
   let rafId     = null;
+  let aimAngleVal = 0; // current aim angle in radians (updated from mouse)
 
   /* ── Input ───────────────────────────────────── */
   function wireInput() {
@@ -29,20 +30,29 @@ const Game = (() => {
       if (e.key.toLowerCase() === 'k') UI.togglePanel('skills');
       if (e.key.toLowerCase() === 'e') tryInteract();
       if (e.key === ' ')               tryBlink();
+      // In wireInput keydown listener, replace or add Escape handling:
+if (e.key === 'Escape') {
+  if (UI.isPauseMenuOpen()) {
+    UI.closePauseMenu();
+    // Re-request pointer lock when closing menu
+    document.getElementById('canvasMount').requestPointerLock();
+  } 
+}
       // Prevent scroll on arrow keys
       if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))
         e.preventDefault();
     });
+    
     document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-
+  
     const mount = document.getElementById('canvasMount');
     mount.addEventListener('mousemove', e => {
       mouseX = e.clientX;
       mouseY = e.clientY;
     });
     mount.addEventListener('mousedown', e => {
-      if (e.button === 0 && running && !UI.isPanelOpen()) doAttack();
-    });
+  if (e.button === 0 && running && !UI.isPanelOpen() && Engine.isPointerLocked()) doAttack();
+});
   }
 
   /* ── Start / restart ─────────────────────────── */
@@ -120,12 +130,17 @@ const Game = (() => {
     const t  = Engine.clock.elapsedTime;
 
     // Update aim
-    const aimAngleVal = Engine.updateAimFromMouse(mouseX, mouseY, player);
+     aimAngleVal = Engine.updateAimFromMouse(mouseX, mouseY, player);
 
     // Player update (if panel closed)
     if (!UI.isPanelOpen()) {
-      Player.update(player, dungeon, keys, null, dt);
+      Player.update(player, dungeon, keys, aimAngleVal, dt);
     }
+    if (!running) return;
+if (UI.isPauseMenuOpen()) {
+  Engine.render(player, Engine.clock.elapsedTime); // still render, just freeze logic
+  return;
+}
 
     // Check boss room entry
     checkBossEntry();
@@ -198,7 +213,7 @@ const Game = (() => {
 
   /* ── Attack ──────────────────────────────────── */
   function doAttack() {
-    const hits = Player.attack(player, enemies, Engine.aimAngle);
+    const hits = Player.attack(player, enemies, aimAngleVal);
 
     hits.forEach(({ enemy, dmg, isCrit, killed }) => {
       Engine.spawnParticles(
@@ -242,7 +257,7 @@ const Game = (() => {
     });
 
     // Swing particle
-    const a = Engine.aimAngle;
+    const a = aimAngleVal || 0;
     Engine.spawnParticles(
       player.x + Math.cos(a) * 1.5,
       1.0,
@@ -254,7 +269,7 @@ const Game = (() => {
   /* ── Blink (Space) ───────────────────────────── */
   function tryBlink() {
     if (!running || UI.isPanelOpen()) return;
-    const did = Player.blink(player, Engine.aimAngle, dungeon);
+    const did = Player.blink(player, aimAngleVal, dungeon);
     if (did) {
       Engine.spawnParticles(player.x, 1.0, player.z, 0x8844ff, 18, 4, 0.7);
       UI.addMsg('Blink!', '');
