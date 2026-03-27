@@ -1,25 +1,47 @@
 /* ═══════════════════════════════════════════════════
    game.js  —  Main loop, state, floor transitions,
                input wiring, chest interaction
-   Exports: Game (namespace)
+
+   Required HTML elements:
+     <div id="stairOverlay"></div>
+     <div id="chestPrompt">Press E to open chest</div>
+     <div id="stairPrompt">Press E to descend the stairs</div>
+
+   Required CSS:
+     #stairOverlay {
+       position:fixed; inset:0; background:#000;
+       opacity:0; pointer-events:none; z-index:50;
+       transition: opacity 0.1s;
+     }
+     #chestPrompt, #stairPrompt {
+       position:fixed; bottom:22%; left:50%;
+       transform:translateX(-50%);
+       background:rgba(0,0,0,0.72); color:#e8d090;
+       font-family:serif; font-size:1.1rem;
+       padding:8px 20px; border-radius:4px;
+       border:1px solid #7a5a20;
+       opacity:0; pointer-events:none; z-index:40;
+       transition: opacity 0.25s;
+     }
+     #stairPrompt { color:#b888ff; border-color:#7744cc; }
 ════════════════════════════════════════════════════ */
 const Game = (() => {
 
   /* ── State ───────────────────────────────────── */
-  let player    = null;
-  let dungeon   = null;
-  let enemies   = [];
-  let floor     = 1;
-  let running   = false;
-  let bossSpawned   = false;
-  let bossDefeated  = false;
-  let exitOpen      = false;
+  let player  = null;
+  let dungeon = null;
+  let enemies = [];
+  let floor   = 1;
+  let running = false;
 
-  const keys    = {};
-  let mouseX    = 0;
-  let mouseY    = 0;
-  let rafId     = null;
-  let aimAngleVal = 0; // current aim angle in radians (updated from mouse)
+  let bossSpawned  = false;
+  let bossDefeated = false;
+  let exitOpen     = false;
+  let stairActive  = false;
+
+  const keys = {};
+  let rafId  = null;
+  let aimAngleVal = 0;
 
   /* ── Input ───────────────────────────────────── */
   function wireInput() {
@@ -29,60 +51,51 @@ const Game = (() => {
       if (e.key.toLowerCase() === 'i') UI.togglePanel('inv');
       if (e.key.toLowerCase() === 'k') UI.togglePanel('skills');
       if (e.key.toLowerCase() === 'e') tryInteract();
-      if (e.key === ' ')               tryBlink();
-      // In wireInput keydown listener, replace or add Escape handling:
-if (e.key === 'Escape') {
-  if (UI.isPauseMenuOpen()) {
-    UI.closePauseMenu();
-    // Re-request pointer lock when closing menu
-    document.getElementById('canvasMount').requestPointerLock();
-  } 
-}
-      // Prevent scroll on arrow keys
+      if (e.key === 'Escape') {
+        if (UI.isPauseMenuOpen()) {
+          UI.closePauseMenu();
+          document.getElementById('canvasMount').requestPointerLock();
+        }
+      }
       if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))
         e.preventDefault();
     });
-    
+
     document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-  
+
     const mount = document.getElementById('canvasMount');
-    mount.addEventListener('mousemove', e => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    });
     mount.addEventListener('mousedown', e => {
-  if (e.button === 0 && running && !UI.isPanelOpen() && Engine.isPointerLocked()) doAttack();
-});
+      if (e.button === 0 && running && !UI.isPanelOpen() && Engine.isPointerLocked()) doAttack();
+    });
   }
 
-  /* ── Start / restart ─────────────────────────── */
+  /* ── Start ───────────────────────────────────── */
   function start() {
     UI.hideTitleAndDeath();
     UI.clearMessages();
     UI.closePanel();
     UI.hideBossBar();
 
-    floor         = 1;
-    bossSpawned   = false;
-    bossDefeated  = false;
-    exitOpen      = false;
-    running       = true;
+    floor        = 1;
+    bossSpawned  = false;
+    bossDefeated = false;
+    exitOpen     = false;
+    stairActive  = false;
+    running      = true;
 
     player  = Player.create();
     dungeon = Dungeon.generate(floor);
 
-    // Position player in start room center
     const { cx, cy } = dungeon.roomCenter(dungeon.startRoom);
     const w = dungeon.toWorld(cx, cy);
     player.x = w.x; player.z = w.z;
+    player._descentY = 0;
 
-    // Init Three.js engine (idempotent)
     Engine.init();
+    Engine.clearDynamic();
     Engine.buildDungeon(dungeon);
     Engine.buildPlayerMesh();
-    Engine.clearDynamic();
 
-    // Spawn enemies
     enemies = Enemies.spawnAll(dungeon, floor);
     enemies.forEach(e => Engine.buildEnemyMesh(e));
 
@@ -97,16 +110,17 @@ if (e.key === 'Escape') {
   /* ── Next floor ──────────────────────────────── */
   function nextFloor() {
     floor++;
-    bossSpawned   = false;
-    bossDefeated  = false;
-    exitOpen      = false;
+    bossSpawned  = false;
+    bossDefeated = false;
+    exitOpen     = false;
+    stairActive  = false;
 
     dungeon = Dungeon.generate(floor);
     const { cx, cy } = dungeon.roomCenter(dungeon.startRoom);
     const w = dungeon.toWorld(cx, cy);
     player.x = w.x; player.z = w.z;
+    player._descentY = 0;
 
-    // Partial heal
     player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.3));
 
     Engine.clearDynamic();
@@ -115,9 +129,17 @@ if (e.key === 'Escape') {
     enemies = Enemies.spawnAll(dungeon, floor);
     enemies.forEach(e => Engine.buildEnemyMesh(e));
 
+    // Fade back in
+    const overlay = document.getElementById('stairOverlay');
+    if (overlay) {
+      overlay.style.transition = 'opacity 0.8s';
+      overlay.style.opacity    = '0';
+      setTimeout(() => { overlay.style.transition = 'opacity 0.1s'; }, 900);
+    }
+
     UI.hideBossBar();
     UI.setFloor(floor);
-    UI.addMsg(`Descended to Floor ${floor}. Darkness deepens...`, 'warn');
+    UI.addMsg(`Floor ${floor}. The darkness deepens...`, 'warn');
     UI.refresh(player);
   }
 
@@ -126,83 +148,70 @@ if (e.key === 'Escape') {
     rafId = requestAnimationFrame(loop);
     if (!running) return;
 
-    const dt = Math.min(Engine.clock.getDelta(), 0.05); // cap at 50ms
+    const dt = Math.min(Engine.clock.getDelta(), 0.05);
     const t  = Engine.clock.elapsedTime;
 
-    // Update aim
-     aimAngleVal = Engine.updateAimFromMouse(mouseX, mouseY, player);
+    aimAngleVal = Engine.updateAimFromMouse();
 
-    // Player update (if panel closed)
+    // Stair descent — freeze everything else
+    if (stairActive) {
+      Engine.tickStairDescent(player, dt);
+      Engine.updateTorchFlicker(t);
+      Engine.render(player, t, dt);
+      return;
+    }
+
     if (!UI.isPanelOpen()) {
       Player.update(player, dungeon, keys, aimAngleVal, dt);
     }
     if (!running) return;
-if (UI.isPauseMenuOpen()) {
-  Engine.render(player, Engine.clock.elapsedTime); // still render, just freeze logic
-  return;
-}
 
-    // Check boss room entry
+    if (UI.isPauseMenuOpen()) {
+      Engine.render(player, t, dt);
+      return;
+    }
+
     checkBossEntry();
 
-    // Check chests
-    checkChestProximity();
-
-    // Enemy ticks
     enemies.forEach(e => {
       if (e.dead) return;
       const result = Enemies.tick(e, player, dungeon, dt);
       if (result && result.attacked) {
         const dmg = Player.takeDamage(player, result.dmg);
-        if (dmg > 0) {
-          UI.addMsg(`${e.name} hits you for ${dmg}!`, 'combat');
-          Engine.flashPlayer(true);
-          setTimeout(() => Engine.flashPlayer(false), 150);
-        }
+        if (dmg > 0) UI.addMsg(`${e.name} hits you for ${dmg}!`, 'combat');
         if (player.hp <= 0) { die(); return; }
       }
-      // HP bar update
       Engine.updateEnemyHpBar(e);
-      // Flash if hit
-      if (e.hitFlash > 0) Engine.flashEnemy(e);
-
-      // Boss bar update
       if (e.isBoss && bossSpawned) UI.updateBossBar(e);
     });
 
-    // Remove dead enemies from scene
     enemies = enemies.filter(e => {
       if (e.dead) { Engine.removeEnemyMesh(e.id); return false; }
       return true;
     });
 
-    // Particles
     Engine.updateParticles(dt);
-
-    // Torch flicker
     Engine.updateTorchFlicker(t);
+    Engine.updateChests(dt);
+    Engine.updateChestPrompt(player);
+    Engine.updateStairPrompt(player, exitOpen, dungeon);
 
-    // Render
-    Engine.render(player, t);
+    Engine.render(player, t, dt);
 
-    // Periodic HUD refresh (every ~10 frames)
     if (Math.round(t * 60) % 10 === 0) UI.refresh(player);
   }
 
-  /* ── Boss entry check ────────────────────────── */
+  /* ── Boss entry ──────────────────────────────── */
   function checkBossEntry() {
     if (bossSpawned) return;
-    const br      = dungeon.bossRoom;
-    const TILE    = dungeon.TILE;
-    const playerTX = Math.floor(player.x / TILE);
-    const playerTZ = Math.floor(player.z / TILE);
+    const br  = dungeon.bossRoom;
+    const tx  = Math.floor(player.x / dungeon.TILE);
+    const tz  = Math.floor(player.z / dungeon.TILE);
 
-    if (
-      playerTX >= br.x && playerTX < br.x + br.w &&
-      playerTZ >= br.y && playerTZ < br.y + br.h
-    ) {
+    if (tx >= br.x && tx < br.x + br.w && tz >= br.y && tz < br.y + br.h) {
       bossSpawned = true;
-      const boss  = Enemies.createBoss(br, floor, dungeon);
+      Engine.openBossDoor();
+      const boss = Enemies.createBoss(br, floor, dungeon);
       enemies.push(boss);
       Engine.buildEnemyMesh(boss);
       UI.showBossBar(boss);
@@ -219,10 +228,8 @@ if (UI.isPauseMenuOpen()) {
       Engine.spawnParticles(
         enemy.x, enemy.height * 0.7, enemy.z,
         isCrit ? 0xffff00 : 0xff3300,
-        isCrit ? 14 : 8, isCrit ? 5 : 3,
-        isCrit ? 0.8 : 0.5
+        isCrit ? 14 : 8, isCrit ? 5 : 3, isCrit ? 0.8 : 0.5
       );
-
       if (isCrit) UI.addMsg(`Critical! ${dmg} damage`, 'combat');
 
       if (killed) {
@@ -231,7 +238,6 @@ if (UI.isPauseMenuOpen()) {
         player.xp += enemy.xp;
         UI.addMsg(`${enemy.name} slain! +${enemy.xp} XP`, 'combat');
 
-        // Loot drop
         if (Math.random() < 0.40 + floor * 0.02) {
           const item = Loot.genItem(floor);
           if (player.inventory.length < 24) {
@@ -240,12 +246,12 @@ if (UI.isPauseMenuOpen()) {
           }
         }
 
-        // Boss kill
         if (enemy.isBoss) {
           bossDefeated = true;
           exitOpen     = true;
           UI.hideBossBar();
-          UI.addMsg('Boss defeated! Find the exit portal!', 'level');
+          UI.addMsg('Boss defeated! Descend the stairs to continue...', 'level');
+          // Stairs appear now for the first time
           Engine.buildExitPortal(dungeon);
           Engine.spawnParticles(enemy.x, 1.5, enemy.z, 0x8844ff, 40, 6, 2.0);
         }
@@ -256,62 +262,53 @@ if (UI.isPauseMenuOpen()) {
       }
     });
 
-    // Swing particle
     const a = aimAngleVal || 0;
     Engine.spawnParticles(
-      player.x + Math.cos(a) * 1.5,
-      1.0,
-      player.z + Math.sin(a) * 1.5,
+      player.x + Math.cos(a) * 1.5, 1.0, player.z + Math.sin(a) * 1.5,
       0xffcc44, 5, 2.5, 0.3
     );
   }
 
-  /* ── Blink (Space) ───────────────────────────── */
-  function tryBlink() {
-    if (!running || UI.isPanelOpen()) return;
-    const did = Player.blink(player, aimAngleVal, dungeon);
-    if (did) {
-      Engine.spawnParticles(player.x, 1.0, player.z, 0x8844ff, 18, 4, 0.7);
-      UI.addMsg('Blink!', '');
-    }
-  }
-
-  /* ── Interact / descend ──────────────────────── */
+  /* ── Interact ────────────────────────────────── */
   function tryInteract() {
-    if (!exitOpen) return;
-    const br   = dungeon.bossRoom;
-    const TILE = dungeon.TILE;
-    const { cx, cy } = dungeon.roomCenter(br);
-    const w = dungeon.toWorld(cx, cy);
-    const dist = Math.sqrt((player.x - w.x) ** 2 + (player.z - w.z) ** 2);
-    if (dist < TILE * 1.8) {
-      Engine.spawnParticles(player.x, 1.0, player.z, 0x8844ff, 30, 5, 1.0);
-      nextFloor();
-    } else {
-      UI.addMsg('Approach the portal to descend [E]', '');
+    // 1. Stair descent (only if exit is open and stairs exist)
+    if (exitOpen && !stairActive && dungeon.stairsPos) {
+      const w    = dungeon.toWorld(dungeon.stairsPos.gx, dungeon.stairsPos.gy);
+      const dx   = player.x - w.x;
+      const dz   = player.z - w.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if (dist < dungeon.TILE * 2.5) {
+        stairActive = true;
+        UI.addMsg('You descend the stairs into deeper darkness...', 'warn');
+        Engine.spawnParticles(player.x, 1.0, player.z, 0x8844ff, 20, 4, 1.0);
+        Engine.startStairDescent(player, dungeon, () => { nextFloor(); });
+        return;
+      }
     }
+
+    // 2. Open nearby chest
+    openNearbyChest();
   }
 
-  /* ── Chest interaction ───────────────────────── */
-  function checkChestProximity() {
-    if (!dungeon.chests) return;
-    for (const chestGroup of Engine.chestMeshes) {
-      const cd    = chestGroup.userData.chestData;
+  /* ── Chest opening ───────────────────────────── */
+  function openNearbyChest() {
+    for (const grp of Engine.chestMeshes) {
+      const cd = grp.userData.chestData;
       if (cd.opened) continue;
-      const dist  = Math.sqrt(
-        (player.x - chestGroup.position.x) ** 2 +
-        (player.z - chestGroup.position.z) ** 2
-      );
-      if (dist < 2.0 && keys['e']) {
-        cd.opened = true;
-        // Open lid animation (tilt)
-        const lid = chestGroup.children[1];
-        if (lid) lid.rotation.x = -Math.PI / 2.2;
+      const dx   = player.x - grp.position.x;
+      const dz   = player.z - grp.position.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if (dist < 2.5) {
+        cd.opened                 = true;
+        grp.userData.isOpening    = true;
+        grp.userData.lidOpenT     = 0;
+
         const item = Loot.genItem(floor);
         player.inventory.push(item);
-        UI.addMsg(`Chest! Found: ${item.name} [${item.rarity}]`, 'loot');
-        Engine.spawnParticles(chestGroup.position.x, 0.8, chestGroup.position.z, 0xffcc44, 16, 3, 0.8);
+        UI.addMsg(`Chest opened! Found: ${item.name} [${item.rarity}]`, 'loot');
+        Engine.spawnParticles(grp.position.x, 0.9, grp.position.z, 0xffcc44, 18, 3, 0.9);
         UI.refresh(player);
+        return; // one chest at a time
       }
     }
   }
@@ -323,10 +320,8 @@ if (UI.isPauseMenuOpen()) {
     UI.showDeath(floor, player.level);
   }
 
-  /* ── Public accessors ────────────────────────── */
   function getPlayer() { return player; }
 
-  // Boot input wiring on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', wireInput);
   } else {
